@@ -1,0 +1,59 @@
+name: Download public Pendragon Cycle site mirror
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Install HTTrack
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y httrack zip python3
+
+      - name: Download public HTML and static assets
+        run: |
+          mkdir -p mirror
+          httrack "https://pendragoncycle.com/" \
+            -O "$PWD/mirror" \
+            "+*.pendragoncycle.com/*" \
+            "+pendragoncycle.com/*" \
+            "+*.datocms-assets.com/*" \
+            "+*.mux.com/*" \
+            "+*.typekit.net/*" \
+            "+use.typekit.net/*" \
+            "+*.cloudflareinsights.com/*" \
+            "-*.mp4" "-*.m3u8" "-*.mpd" "-*.ts" \
+            "-*google-analytics*" "-*googletagmanager*" \
+            --robots=0 --depth=5 --ext-depth=2 --keep-alive --sockets=4 \
+            --connection-per-second=2 --timeout=30 --retries=2 -v
+
+      - name: Post-process downloaded mirror
+        continue-on-error: true
+        run: |
+          python3 scripts/prepare_pendragon_mirror.py "$PWD/mirror" || true
+          printf '\nMirror scope: public pages and static assets only.\nVideo streams were excluded to keep the archive manageable.\n' > mirror/ARCHIVE-NOTES.txt
+
+      - name: Create archive and inventory
+        run: |
+          find mirror -type f -printf '%P\t%s bytes\n' | sort > mirror/FILE-INVENTORY.txt
+          du -sh mirror
+          zip -qr pendragon-public-mirror.zip mirror
+          ls -lh pendragon-public-mirror.zip
+
+      - name: Upload downloadable archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: pendragon-public-mirror
+          path: pendragon-public-mirror.zip
+          if-no-files-found: error
+          retention-days: 7
