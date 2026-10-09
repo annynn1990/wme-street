@@ -12,7 +12,8 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  # New commits supersede a stale mirror/deployment instead of waiting behind it.
+  cancel-in-progress: true
 
 jobs:
   mirror-and-deploy:
