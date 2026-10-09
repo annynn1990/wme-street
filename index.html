@@ -2,125 +2,51 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#7989ed">
-  <meta name="description" content="Explore a colorful, interactive virtual street. Walk around, jump, and discover the pop-up store, brand stories, street ads, and news.">
-  <title>EASY TOMORROW STREET — 街道漫遊</title>
-  <link rel="stylesheet" href="./style.css">
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#272b4d">
+  <title>EASY TOMORROW STREET</title>
+  <meta name="description" content="Open the original EASY TOMORROW Street interactive 3D experience.">
+  <style>
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:Arial,"Noto Sans TC",sans-serif;background:#aebcfb;color:#232541}
+    body{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at 75% 5%,#fff5d6 0,transparent 30%),linear-gradient(145deg,#99a9f4,#e6d4d9 62%,#f3d6ad)}
+    main{width:min(620px,100%);padding:clamp(26px,6vw,54px);border:1px solid #ffffffa8;border-radius:24px;background:#fbf8f0e8;box-shadow:0 28px 90px #292c5524}
+    .brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:12px;letter-spacing:.16em}
+    .mark{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:#252744;color:#d8ff73;font-size:16px;letter-spacing:-.07em}
+    .eyebrow{margin:42px 0 10px;font-size:10px;letter-spacing:.16em;color:#696b8c}
+    h1{font-size:clamp(36px,7vw,61px);letter-spacing:-.075em;line-height:.98;margin:0;font-weight:900}
+    h1 span{display:block;color:#5b50d7}
+    .desc{font-size:14px;line-height:1.9;color:#565873;max-width:420px;margin:21px 0 26px}
+    .actions{display:flex;flex-wrap:wrap;gap:10px}
+    a{display:inline-flex;align-items:center;justify-content:center;gap:16px;padding:14px 18px;border-radius:9px;text-decoration:none;font-size:12px;font-weight:700}
+    .primary{background:#252744;color:#fff}
+    .secondary{border:1px solid #292b4b30;color:#292b49}
+    .note{margin:22px 0 0;color:#777894;font-size:11px;line-height:1.8}
+    .status{display:inline-flex;align-items:center;gap:8px;margin-top:29px;font-size:10px;letter-spacing:.09em;color:#626583}
+    .status i{width:7px;height:7px;border-radius:50%;background:#48a675}
+  </style>
+  <script>
+    // The repository does not contain the original game's 3D assets.
+    // Open the real publisher-hosted street rather than substituting a fake scene.
+    window.addEventListener('DOMContentLoaded', function () {
+      var target = 'https://www.easytomorrow.com/en/street';
+      var button = document.getElementById('openOriginal');
+      button.href = target;
+    });
+  </script>
 </head>
 <body>
-  <main id="app">
-    <canvas id="world" aria-label="可互動的 3D 街景"></canvas>
-    <div class="sky-glow" aria-hidden="true"></div>
-
-    <header class="topbar">
-      <a class="brand" href="./" aria-label="EASY TOMORROW STREET 首頁">
-        <span class="brand-mark">ET</span>
-        <span class="brand-name">EASY TOMORROW <small>STREET</small></span>
-      </a>
-      <div class="topbar-actions">
-        <span class="live-pill"><i></i> 可自由探索</span>
-        <button class="nav-button" id="mapToggle" type="button" aria-expanded="false">街區地圖</button>
-        <a class="nav-link" href="https://easytomorrow.com/en/street" target="_blank" rel="noopener noreferrer">官方原站 ↗</a>
-      </div>
-    </header>
-
-    <section class="intro-card" id="introCard" aria-labelledby="introTitle">
-      <div class="eyebrow"><span class="eyebrow-dot"></span> A LITTLE STREET, A FRESH TOMORROW</div>
-      <p class="intro-kicker">WELCOME TO</p>
-      <h1 id="introTitle">EASY TOMORROW<br><em>STREET.</em></h1>
-      <p class="intro-description">走進一座色彩繽紛的街區。四處散步、跳躍，尋找藏在街角的店舖、故事與驚喜。</p>
-      <div class="control-summary">
-        <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><small>移動</small></span>
-        <span><kbd>SPACE</kbd><small>跳躍</small></span>
-        <span><kbd>E</kbd><small>互動</small></span>
-      </div>
-      <button class="primary-button" id="enterStreet" type="button">進入街道 <span aria-hidden="true">↗</span></button>
-      <p class="intro-note">無需登入 · 直接在瀏覽器遊玩</p>
-    </section>
-
-    <div class="corner-label" id="cornerLabel" aria-hidden="true">
-      <span class="corner-number">01</span>
-      <span class="corner-divider"></span>
-      <span>THE BLUE EXPRESS<br><b>STREET EXPERIENCE</b></span>
+  <main>
+    <div class="brand"><span class="mark">ET</span><span>EASY TOMORROW<br>STREET EXPERIENCE</span></div>
+    <p class="eyebrow">THE ORIGINAL INTERACTIVE STREET</p>
+    <h1>Ready to walk?<span>Enter the street.</span></h1>
+    <p class="desc">這個專案原本只有 HTTrack 產生的索引頁，並沒有包含原版 3D 街景需要的模型、貼圖與互動程式。這裡會直接帶你前往官方原站，不再用簡化的假街景代替。</p>
+    <div class="actions">
+      <a class="primary" id="openOriginal" href="https://www.easytomorrow.com/en/street">開啟官方英文街景 <span>↗</span></a>
+      <a class="secondary" href="https://www.easytomorrow.com/kr/street" target="_blank" rel="noopener noreferrer">韓文街景版本 ↗</a>
     </div>
-
-    <section class="game-hud" id="gameHud" aria-live="polite" hidden>
-      <div class="hud-heading">
-        <span class="hud-label">YOUR WALK</span>
-        <span class="hud-count" id="discoverCount">0 / 4 DISCOVERED</span>
-      </div>
-      <p id="missionText">探索街區，尋找發光的互動地點。</p>
-      <div class="progress-track"><span id="progressBar"></span></div>
-    </section>
-
-    <section class="map-card" id="mapCard" hidden aria-label="街區地圖">
-      <div class="map-card-heading"><span>街區地圖</span><button id="closeMap" type="button" aria-label="關閉地圖">×</button></div>
-      <div class="map-diagram">
-        <div class="map-road"></div>
-        <div class="map-cross cross-a"></div><div class="map-cross cross-b"></div><div class="map-cross cross-c"></div>
-        <span class="map-shop map-shop-a">STORE</span>
-        <span class="map-shop map-shop-b">STORY</span>
-        <span class="map-shop map-shop-c">ADS</span>
-        <span class="map-shop map-shop-d">NEWS</span>
-        <span class="map-player" id="mapPlayer" aria-label="你目前的位置"></span>
-      </div>
-      <p class="map-note">沿著主街移動，靠近發光標記後按 E 互動。</p>
-    </section>
-
-    <div class="interaction-prompt" id="interactionPrompt" hidden>
-      <span class="prompt-key">E</span>
-      <span><small>DISCOVER</small><b id="promptName">靠近探索</b></span>
-      <span class="prompt-arrow">↗</span>
-    </div>
-
-    <div class="mobile-controls" id="mobileControls" aria-label="手機操作控制">
-      <div class="joystick" id="joystick" aria-label="虛擬方向搖桿">
-        <span class="joystick-ring"></span><span class="joystick-knob" id="joystickKnob"></span>
-      </div>
-      <div class="mobile-action-buttons">
-        <button id="jumpButton" type="button" aria-label="跳躍">跳躍 <span>↑</span></button>
-        <button id="interactButton" class="mobile-interact" type="button" aria-label="互動">互動 <span>E</span></button>
-      </div>
-    </div>
-
-    <button class="help-button" id="helpToggle" type="button" aria-expanded="false">操作說明 <span>＋</span></button>
-    <aside class="help-card" id="helpCard" hidden>
-      <div class="help-title">HOW TO EXPLORE <button id="closeHelp" type="button" aria-label="關閉操作說明">×</button></div>
-      <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 或方向鍵移動</p>
-      <p><kbd>SPACE</kbd> 跳躍　<kbd>E</kbd> 互動</p>
-      <p>手機可使用左下角搖桿，右下角按鈕跳躍或互動。</p>
-    </aside>
-
-    <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
-    <section class="dialog-backdrop" id="dialogBackdrop" hidden>
-      <article class="discovery-dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
-        <button class="dialog-close" id="dialogClose" type="button" aria-label="關閉">×</button>
-        <div class="dialog-art" id="dialogArt"><span>ET</span></div>
-        <div class="dialog-copy">
-          <p class="dialog-eyebrow" id="dialogEyebrow">STREET DISCOVERY</p>
-          <h2 id="dialogTitle">Welcome</h2>
-          <p id="dialogText"></p>
-          <a class="dialog-link" id="dialogLink" href="https://easytomorrow.com/en/street" target="_blank" rel="noopener noreferrer">前往官方網站 ↗</a>
-        </div>
-      </article>
-    </section>
-
-    <footer class="bottom-note" id="bottomNote">
-      <span>AN INTERACTIVE STREET EXPERIENCE</span>
-      <span>MOVE · EXPLORE · DISCOVER</span>
-    </footer>
-
-    <section class="boot-error" id="bootError" hidden>
-      <div class="error-icon">!</div>
-      <h2>3D 街景暫時無法載入</h2>
-      <p>請確認網路連線並重新整理。若仍無法載入，可以先開啟官方街道網站。</p>
-      <a href="https://easytomorrow.com/en/street" target="_blank" rel="noopener noreferrer">開啟官方原站 ↗</a>
-      <button id="retryButton" type="button">重新載入</button>
-    </section>
+    <p class="note">如果英文入口載入失敗，請試試韓文版本。官方街景由 EASY TOMORROW 主站提供，需要連線才能遊玩；目前這個 GitHub 專案尚不是完整的離線複製版。</p>
+    <div class="status"><i></i> OFFICIAL EXPERIENCE LINKS</div>
   </main>
-  <script type="module" src="./app.js"></script>
 </body>
 </html>
