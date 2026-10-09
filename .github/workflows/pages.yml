@@ -1,4 +1,4 @@
-name: Deploy street website to GitHub Pages
+name: Deploy Pendragon Cycle public mirror to GitHub Pages
 
 on:
   push:
@@ -15,22 +15,63 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  mirror-and-deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Configure GitHub Pages
+
+      - name: Enable GitHub Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
-      - name: Upload website files
+
+      - name: Install HTTrack
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y httrack zip python3
+
+      - name: Mirror public pages and static assets
+        run: |
+          mkdir -p mirror
+          httrack "https://pendragoncycle.com/" \
+            -O "$PWD/mirror" \
+            "+*.pendragoncycle.com/*" \
+            "+pendragoncycle.com/*" \
+            "+*.datocms-assets.com/*" \
+            "+*.mux.com/*" \
+            "+*.typekit.net/*" \
+            "+use.typekit.net/*" \
+            "-*.mp4" "-*.m3u8" "-*.mpd" "-*.ts" \
+            "-*google-analytics*" "-*googletagmanager*" \
+            --robots=0 --depth=5 --ext-depth=2 --keep-alive --sockets=4 \
+            --connection-per-second=2 --timeout=30 --retries=2 -v
+
+      - name: Localize discovered public image assets
+        run: |
+          python3 scripts/prepare_pendragon_mirror.py "$PWD/mirror"
+          test -f mirror/index.html
+          test -f mirror/pendragoncycle.com/index.html
+
+      - name: Prepare static hosting
+        run: |
+          touch mirror/.nojekyll
+          printf '%s\n' 'This is a static mirror of publicly accessible pages and non-video assets.' > mirror/ARCHIVE-NOTES.txt
+          printf '%s\n' 'Large video streams are not bundled and may still require an internet connection.' >> mirror/ARCHIVE-NOTES.txt
+          echo "Mirror file count:"
+          find mirror -type f | wc -l
+          echo "Mirror disk usage:"
+          du -sh mirror
+
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
-      - name: Deploy website
+          path: mirror
+
+      - name: Deploy mirror
         id: deployment
         uses: actions/deploy-pages@v4
