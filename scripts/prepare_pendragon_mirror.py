@@ -346,6 +346,52 @@ for page in pages:
         rewritten_pages += 1
         page.write_text(updated, encoding="utf-8")
 
+# Explicitly fetch textures selected at runtime by the AVIF/WebP detector.
+# HTTrack does not reliably discover these because their URLs live in template literals.
+dynamic_texture_stems = [
+    "images/noise/fbm",
+    "images/backdrop/bg2-4k",
+    "images/backdrop/preloader_bg",
+    "images/backdrop/distort",
+    "images/rock/rock-2k",
+    "images/rock/rock-normal-2k",
+    "images/rock/rock-alpha-2k",
+    "images/sword/sword-glow-2k",
+    "images/sword/sword-2k",
+    "images/sword/sword-alpha-2k",
+    "images/sword/sword-normal-2k",
+    "images/glyphs/glyph-blur",
+    "images/noise-025k",
+]
+dynamic_texture_failures: list[str] = []
+dynamic_texture_fallbacks: dict[str, str] = {}
+dynamic_texture_downloads = 0
+for stem in dynamic_texture_stems:
+    # Check all likely formats first, then explicitly request each missing browser variant.
+    for extension in ('.avif', '.webp', '.png'):
+        destination = site_root / f'{stem}{extension}'
+        if destination.exists() and destination.stat().st_size > 0:
+            continue
+        if extension == '.png':
+            # PNG is a fallback when the source has no AVIF/WebP representation.
+            continue
+        asset_path = '/' + stem + extension
+        if fetch_to_path('https://pendragoncycle.com' + asset_path, destination, timeout=90, record_failure=False):
+            dynamic_texture_downloads += 1
+        time.sleep(0.04)
+    available = [ext for ext in ('.avif', '.webp', '.png')
+                 if (site_root / f'{stem}{ext}').exists() and (site_root / f'{stem}{ext}').stat().st_size > 0]
+    if not available:
+        dynamic_texture_failures.append(stem)
+    elif '.webp' in available:
+        # WebP is supported broadly and is preferred only when AVIF is missing.
+        if '.avif' not in available:
+            dynamic_texture_fallbacks[stem] = '.webp'
+    elif '.png' in available:
+        dynamic_texture_fallbacks[stem] = '.png'
+    elif '.avif' in available:
+        dynamic_texture_failures.append(stem + ' (AVIF only; no broadly supported fallback)')
+
 # Rewrite every JS/CSS file after recursive downloads, including late-loaded chunks.
 rewritten_bundles = 0
 if base_path:
@@ -396,52 +442,6 @@ if build_id:
         else:
             json_failures.append(path)
         time.sleep(0.03)
-
-# Explicitly fetch textures selected at runtime by the AVIF/WebP detector.
-# HTTrack does not reliably discover these because their URLs live in template literals.
-dynamic_texture_stems = [
-    "images/noise/fbm",
-    "images/backdrop/bg2-4k",
-    "images/backdrop/preloader_bg",
-    "images/backdrop/distort",
-    "images/rock/rock-2k",
-    "images/rock/rock-normal-2k",
-    "images/rock/rock-alpha-2k",
-    "images/sword/sword-glow-2k",
-    "images/sword/sword-2k",
-    "images/sword/sword-alpha-2k",
-    "images/sword/sword-normal-2k",
-    "images/glyphs/glyph-blur",
-    "images/noise-025k",
-]
-dynamic_texture_failures: list[str] = []
-dynamic_texture_fallbacks: dict[str, str] = {}
-dynamic_texture_downloads = 0
-for stem in dynamic_texture_stems:
-    # Check all likely formats first, then explicitly request each missing browser variant.
-    for extension in ('.avif', '.webp', '.png'):
-        destination = site_root / f'{stem}{extension}'
-        if destination.exists() and destination.stat().st_size > 0:
-            continue
-        if extension == '.png':
-            # PNG is a fallback when the source has no AVIF/WebP representation.
-            continue
-        asset_path = '/' + stem + extension
-        if fetch_to_path('https://pendragoncycle.com' + asset_path, destination, timeout=90, record_failure=False):
-            dynamic_texture_downloads += 1
-        time.sleep(0.04)
-    available = [ext for ext in ('.avif', '.webp', '.png')
-                 if (site_root / f'{stem}{ext}').exists() and (site_root / f'{stem}{ext}').stat().st_size > 0]
-    if not available:
-        dynamic_texture_failures.append(stem)
-    elif '.webp' in available:
-        # WebP is supported broadly and is preferred only when AVIF is missing.
-        if '.avif' not in available:
-            dynamic_texture_fallbacks[stem] = '.webp'
-    elif '.png' in available:
-        dynamic_texture_fallbacks[stem] = '.png'
-    elif '.avif' in available:
-        dynamic_texture_failures.append(stem + ' (AVIF only; no broadly supported fallback)')
 
 # Add a friendly root entry point for the deployed mirror.
 site_index = site_root / "index.html"
