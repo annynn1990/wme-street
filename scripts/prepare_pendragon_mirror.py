@@ -106,7 +106,7 @@ downloaded_external: dict[str, Path] = {}
 failed: list[str] = []
 downloaded_js_assets: set[str] = set()
 
-def fetch_to_path(url: str, destination: Path, timeout: int = 35) -> bool:
+def fetch_to_path(url: str, destination: Path, timeout: int = 35, record_failure: bool = True) -> bool:
     if destination.exists() and destination.stat().st_size > 0:
         return True
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -127,7 +127,8 @@ def fetch_to_path(url: str, destination: Path, timeout: int = 35) -> bool:
         return True
     except Exception as exc:
         destination.unlink(missing_ok=True)
-        failed.append(f"{url} [{type(exc).__name__}: {exc}]")
+        if record_failure:
+            failed.append(f"{url} [{type(exc).__name__}: {exc}]")
         return False
 
 for url in sorted(urls):
@@ -361,6 +362,14 @@ if base_path:
                 lambda match: match.group(1) + base_path + prefix,
                 updated,
             )
+        # If the origin does not provide AVIF but has WebP/PNG, pin this texture
+        # to the available local fallback instead of letting the AVIF detector request a 404.
+        if base_path and dynamic_texture_fallbacks:
+            for stem, extension in dynamic_texture_fallbacks.items():
+                texture_prefix = base_path + '/' + stem
+                dynamic_pattern = re.escape(texture_prefix) + r'\.\$\{[^{}]+\}'
+                updated = re.sub(dynamic_pattern, texture_prefix + extension, updated)
+
         if updated != source_text:
             source.write_text(updated, encoding="utf-8")
             rewritten_bundles += 1
@@ -388,6 +397,52 @@ if build_id:
             json_failures.append(path)
         time.sleep(0.03)
 
+# Explicitly fetch textures selected at runtime by the AVIF/WebP detector.
+# HTTrack does not reliably discover these because their URLs live in template literals.
+dynamic_texture_stems = [
+    "images/noise/fbm",
+    "images/backdrop/bg2-4k",
+    "images/backdrop/preloader_bg",
+    "images/backdrop/distort",
+    "images/rock/rock-2k",
+    "images/rock/rock-normal-2k",
+    "images/rock/rock-alpha-2k",
+    "images/sword/sword-glow-2k",
+    "images/sword/sword-2k",
+    "images/sword/sword-alpha-2k",
+    "images/sword/sword-normal-2k",
+    "images/glyphs/glyph-blur",
+    "images/noise-025k",
+]
+dynamic_texture_failures: list[str] = []
+dynamic_texture_fallbacks: dict[str, str] = {}
+dynamic_texture_downloads = 0
+for stem in dynamic_texture_stems:
+    # Check all likely formats first, then explicitly request each missing browser variant.
+    for extension in ('.avif', '.webp', '.png'):
+        destination = site_root / f'{stem}{extension}'
+        if destination.exists() and destination.stat().st_size > 0:
+            continue
+        if extension == '.png':
+            # PNG is a fallback when the source has no AVIF/WebP representation.
+            continue
+        asset_path = '/' + stem + extension
+        if fetch_to_path('https://pendragoncycle.com' + asset_path, destination, timeout=90, record_failure=False):
+            dynamic_texture_downloads += 1
+        time.sleep(0.04)
+    available = [ext for ext in ('.avif', '.webp', '.png')
+                 if (site_root / f'{stem}{ext}').exists() and (site_root / f'{stem}{ext}').stat().st_size > 0]
+    if not available:
+        dynamic_texture_failures.append(stem)
+    elif '.webp' in available:
+        # WebP is supported broadly and is preferred only when AVIF is missing.
+        if '.avif' not in available:
+            dynamic_texture_fallbacks[stem] = '.webp'
+    elif '.png' in available:
+        dynamic_texture_fallbacks[stem] = '.png'
+    elif '.avif' in available:
+        dynamic_texture_failures.append(stem + ' (AVIF only; no broadly supported fallback)')
+
 # Add a friendly root entry point for the deployed mirror.
 site_index = site_root / "index.html"
 if site_index.exists():
@@ -411,6 +466,8 @@ report = [
     f"Short-loop video URLs discovered: {len(loop_video_urls)}",
     f"Short-loop videos downloaded/localized: {video_success}",
     f"Additional JS/CSS-referenced local assets downloaded: {len(downloaded_js_assets)}",
+    f"Explicit dynamic texture variants downloaded: {dynamic_texture_downloads}",
+    f"Textures pinned to local fallback formats: {len(dynamic_texture_fallbacks)}",
     f"HTML pages updated with local media/base paths: {rewritten_pages}",
     f"JS/CSS bundles updated with project base path: {rewritten_bundles}",
     f"Next.js route JSON payloads saved: {json_downloads}",
@@ -424,6 +481,9 @@ report = [
     "",
     "Next.js JSON fetch failures:",
     *(json_failures or ["None"]),
+    "",
+    "Missing dynamic texture sets:",
+    *(dynamic_texture_failures or ["None"]),
 ]
 (root / "MIRROR-REPORT.txt").write_text("\n".join(report) + "\n", encoding="utf-8")
 print("\n".join(report[:12]))
