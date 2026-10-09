@@ -93,71 +93,74 @@ for url in sorted(urls | loop_video_urls):
         downloaded_external[url] = destination
     time.sleep(0.04)
 
-# Scan downloaded JS/CSS for public files that HTTrack cannot discover inside code.
-# This includes the preloader video, procedural-scene textures, audio cues, and Next chunks
-# named only in the build manifest (including page-specific chunks).
-source_files = list(site_root.rglob("*.js")) + list(site_root.rglob("*.css"))
-source_texts: dict[Path, str] = {}
-root_assets: set[str] = set()
-manifest_assets: set[str] = set()
+# Scan JS/CSS repeatedly so late-loaded Next.js chunks are scanned too.
+# A first pass can discover page chunks; those chunks can reference additional textures.
+downloaded_js_assets: set[str] = set()
+attempted_asset_paths: set[str] = set()
+scanned_bundles: dict[Path, str] = {}
 
-for source in source_files:
-    try:
-        source_text = source.read_text(encoding="utf-8", errors="ignore")
-    except OSError:
-        continue
-    source_texts[source] = source_text
-    for match in quoted_asset_re.finditer(source_text):
-        path = match.group(1).split("?", 1)[0].split("#", 1)[0]
-        if "$" in path or path.endswith("/") or path.count(".."):
-            continue
-        root_assets.add(path)
-    for match in css_url_re.finditer(source_text):
-        path = match.group(1).split("?", 1)[0].split("#", 1)[0]
-        if "$" in path or path.endswith("/") or path.count(".."):
-            continue
-        root_assets.add(path)
-    for match in manifest_ref_re.finditer(source_text):
-        ref = match.group(1)
-        if "$" in ref:
-            continue
-        manifest_assets.add("/_next/" + ref)
+for scan_round in range(8):
+    discovered_paths: set[str] = set()
+    source_files = list(site_root.rglob("*.js")) + list(site_root.rglob("*.css"))
 
-# Ensure Next.js route assets listed in the build manifest exist even if never reached by links.
-for path in sorted(manifest_assets):
-    rel = urllib.parse.unquote(path.lstrip("/"))
-    destination = site_root / rel
-    url = "https://pendragoncycle.com" + path
-    if fetch_to_path(url, destination):
-        downloaded_js_assets.add(path)
-    time.sleep(0.04)
+    for source in source_files:
+        try:
+            source_text = source.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        if scanned_bundles.get(source) == source_text:
+            continue
+        scanned_bundles[source] = source_text
 
-# Root-relative resources encoded in bundles are not followed by HTTrack.
-for path in sorted(root_assets):
-    if path.startswith("/_next/static/"):
-        destination = site_root / urllib.parse.unquote(path.lstrip("/"))
-        url = "https://pendragoncycle.com" + path
-        if fetch_to_path(url, destination):
-            downloaded_js_assets.add(path)
-    elif path.startswith(("/images/", "/videos/")):
-        destination = site_root / urllib.parse.unquote(path.lstrip("/"))
-        url = "https://pendragoncycle.com" + path
-        if fetch_to_path(url, destination, timeout=120 if path.lower().endswith(".mp4") else 35):
-            downloaded_js_assets.add(path)
-    elif path.startswith("/audio/"):
-        # Howler's source map uses an extensionless base and tries WebM then MP3.
-        if Path(path).suffix:
-            extensions = [""]
+        for match in quoted_asset_re.finditer(source_text):
+            path = match.group(1).split("?", 1)[0].split("#", 1)[0]
+            if "$" in path or path.endswith("/") or path.count(".."):
+                continue
+            discovered_paths.add(path)
+
+        for match in css_url_re.finditer(source_text):
+            path = match.group(1).split("?", 1)[0].split("#", 1)[0]
+            if "$" in path or path.endswith("/") or path.count(".."):
+                continue
+            discovered_paths.add(path)
+
+        for match in manifest_ref_re.finditer(source_text):
+            ref = match.group(1)
+            if "$" not in ref and ".." not in ref:
+                discovered_paths.add("/_next/" + ref)
+
+    pending_paths = sorted(discovered_paths - attempted_asset_paths)
+    if not pending_paths:
+        break
+
+    downloaded_this_round = 0
+    for path in pending_paths:
+        attempted_asset_paths.add(path)
+
+        if path.startswith("/audio/"):
+            # Howler may declare an extensionless audio base and try WebM then MP3.
+            suffixes = [""] if Path(path).suffix else [".webm", ".mp3"]
+            asset_paths = [path + suffix for suffix in suffixes]
+        elif path.startswith(("/_next/static/", "/images/", "/videos/")):
+            asset_paths = [path]
         else:
-            extensions = [".webm", ".mp3"]
-        for extension in extensions:
-            audio_path = path + extension
-            destination = site_root / urllib.parse.unquote(audio_path.lstrip("/"))
-            url = "https://pendragoncycle.com" + audio_path
-            if fetch_to_path(url, destination):
-                downloaded_js_assets.add(audio_path)
+            continue
+
+        for asset_path in asset_paths:
+            destination = site_root / urllib.parse.unquote(asset_path.lstrip("/"))
+            if destination.exists() and destination.stat().st_size > 0:
+                downloaded_js_assets.add(asset_path)
+                continue
+            url = "https://pendragoncycle.com" + asset_path
+            timeout = 120 if asset_path.lower().endswith(".mp4") else 35
+            if fetch_to_path(url, destination, timeout=timeout):
+                downloaded_js_assets.add(asset_path)
+                downloaded_this_round += 1
             time.sleep(0.03)
-    time.sleep(0.03)
+
+    # Newly fetched JavaScript is discovered on the next round.
+    if downloaded_this_round == 0:
+        break
 
 # Rewrite downloaded external media URLs in HTML/Next page data to local files.
 rewritten_pages = 0
@@ -222,14 +225,23 @@ for page in pages:
         rewritten_pages += 1
         page.write_text(updated, encoding="utf-8")
 
-# Rewrite absolute static-asset paths inside JS/CSS as well.
+# Rewrite every JS/CSS file after recursive downloads, including late-loaded chunks.
 rewritten_bundles = 0
 if base_path:
-    for source, text in source_texts.items():
-        updated = text
+    bundle_files = list(site_root.rglob("*.js")) + list(site_root.rglob("*.css"))
+    for source in bundle_files:
+        try:
+            source_text = source.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        updated = source_text
         for prefix in ("/_next/", "/images/", "/audio/", "/videos/"):
-            updated = re.sub(r"""(["'(=\s])""" + re.escape(prefix), lambda m: m.group(1) + base_path + prefix, updated)
-        if updated != text:
+            updated = re.sub(
+                r"""(["'(=\s])""" + re.escape(prefix),
+                lambda match: match.group(1) + base_path + prefix,
+                updated,
+            )
+        if updated != source_text:
             source.write_text(updated, encoding="utf-8")
             rewritten_bundles += 1
 
