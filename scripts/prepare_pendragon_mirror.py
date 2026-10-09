@@ -465,6 +465,9 @@ tagline_variants = (
     ("This is to be Arthur&#39;s story.", "This is to be WongMing story."),
     ("This is to be Arthur&#x27;s story.", "This is to be WongMing story."),
     ("This is to be Arthur&#8217;s story.", "This is to be WongMing story."),
+    ("This is to be Arthur\u2019s story", "This is to be WongMing story"),
+    ("This is to be Arthur's story", "This is to be WongMing story"),
+    ("This is to be Arthur&#39;s story", "This is to be WongMing story"),
 )
 text_extensions = {".html", ".htm", ".js", ".json", ".css", ".svg", ".txt", ".xml", ".map"}
 for source in site_root.rglob("*"):
