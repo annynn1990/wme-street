@@ -53,7 +53,7 @@ jobs:
 
       - name: Localize discovered public image assets
         run: |
-          python3 scripts/prepare_pendragon_mirror.py "$PWD/mirror"
+          SITE_BASE_PATH="/wme-street/pendragoncycle.com" python3 scripts/prepare_pendragon_mirror.py "$PWD/mirror"
           test -f mirror/index.html
           test -f mirror/pendragoncycle.com/index.html
 
