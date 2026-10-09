@@ -1,140 +1,126 @@
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
-
+<!doctype html>
+<html lang="zh-Hant">
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-	<meta name="description" content="HTTrack is an easy-to-use website mirror utility. It allows you to download a World Wide website from the Internet to a local directory,building recursively all structures, getting html, images, and other files from the server to your computer. Links are rebuiltrelatively so that you can freely browse to the local site (works with any browser). You can mirror several sites together so that you can jump from one toanother. You can, also, update an existing mirror site, or resume an interrupted download. The robot is fully configurable, with an integrated help" />
-	<meta name="keywords" content="httrack, HTTRACK, HTTrack, winhttrack, WINHTTRACK, WinHTTrack, offline browser, web mirror utility, aspirateur web, surf offline, web capture, www mirror utility, browse offline, local  site builder, website mirroring, aspirateur www, internet grabber, capture de site web, internet tool, hors connexion, unix, dos, windows 95, windows 98, solaris, ibm580, AIX 4.0, HTS, HTGet, web aspirator, web aspirateur, libre, GPL, GNU, free software" />
-	<title>List of available projects - HTTrack Website Copier</title>
-	<!-- Mirror and index made by HTTrack Website Copier/3.49-2 [XR&CO'2014] -->
-
-	<style type="text/css">
-	<!--
-
-body {
-	margin: 0;  padding: 0;  margin-bottom: 15px;  margin-top: 8px;
-	background: #77b;
-}
-body, td {
-	font: 14px "Trebuchet MS", Verdana, Arial, Helvetica, sans-serif;
-	}
-
-#subTitle {
-	background: #000;  color: #fff;  padding: 4px;  font-weight: bold; 
-	}
-
-#siteNavigation a, #siteNavigation .current {
-	font-weight: bold;  color: #448;
-	}
-#siteNavigation a:link    { text-decoration: none; }
-#siteNavigation a:visited { text-decoration: none; }
-
-#siteNavigation .current { background-color: #ccd; }
-
-#siteNavigation a:hover   { text-decoration: none;  background-color: #fff;  color: #000; }
-#siteNavigation a:active  { text-decoration: none;  background-color: #ccc; }
-
-
-a:link    { text-decoration: underline;  color: #00f; }
-a:visited { text-decoration: underline;  color: #000; }
-a:hover   { text-decoration: underline;  color: #c00; }
-a:active  { text-decoration: underline; }
-
-#pageContent {
-	clear: both;
-	border-bottom: 6px solid #000;
-	padding: 10px;  padding-top: 20px;
-	line-height: 1.65em;
-	background-image: url(backblue.gif);
-	background-repeat: no-repeat;
-	background-position: top right;
-	}
-
-#pageContent, #siteNavigation {
-	background-color: #ccd;
-	}
-
-
-.imgLeft  { float: left;   margin-right: 10px;  margin-bottom: 10px; }
-.imgRight { float: right;  margin-left: 10px;   margin-bottom: 10px; }
-
-hr { height: 1px;  color: #000;  background-color: #000;  margin-bottom: 15px; }
-
-h1 { margin: 0;  font-weight: bold;  font-size: 2em; }
-h2 { margin: 0;  font-weight: bold;  font-size: 1.6em; }
-h3 { margin: 0;  font-weight: bold;  font-size: 1.3em; }
-h4 { margin: 0;  font-weight: bold;  font-size: 1.18em; }
-
-.blak { background-color: #000; }
-.hide { display: none; }
-.tableWidth { min-width: 400px; }
-
-.tblRegular       { border-collapse: collapse; }
-.tblRegular td    { padding: 6px;  background-image: url(fade.gif);  border: 2px solid #99c; }
-.tblHeaderColor, .tblHeaderColor td { background: #99c; }
-.tblNoBorder td   { border: 0; }
-
-
-// -->
-</style>
-
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#7989ed">
+  <meta name="description" content="Explore a colorful, interactive virtual street. Walk around, jump, and discover the pop-up store, brand stories, street ads, and news.">
+  <title>EASY TOMORROW STREET — 街道漫遊</title>
+  <link rel="stylesheet" href="./style.css">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 </head>
-
 <body>
-<table width="76%" border="0" align="center" cellspacing="0" cellpadding="3" class="tableWidth">
-	<tr>
-	<td id="subTitle">HTTrack Website Copier - Open Source offline browser</td>
-	</tr>
-</table>
-<table width="76%" border="0" align="center" cellspacing="0" cellpadding="0" class="tableWidth">
-<tr class="blak">
-<td>
-	<table width="100%" border="0" align="center" cellspacing="1" cellpadding="0">
-	<tr>
-	<td colspan="6"> 
-		<table width="100%" border="0" align="center" cellspacing="0" cellpadding="10">
-		<tr> 
-		<td id="pageContent"> 
-<!-- ==================== End prologue ==================== -->
+  <main id="app">
+    <canvas id="world" aria-label="可互動的 3D 街景"></canvas>
+    <div class="sky-glow" aria-hidden="true"></div>
 
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="EASY TOMORROW STREET 首頁">
+        <span class="brand-mark">ET</span>
+        <span class="brand-name">EASY TOMORROW <small>STREET</small></span>
+      </a>
+      <div class="topbar-actions">
+        <span class="live-pill"><i></i> 可自由探索</span>
+        <button class="nav-button" id="mapToggle" type="button" aria-expanded="false">街區地圖</button>
+        <a class="nav-link" href="https://easytomorrow.com/en/street" target="_blank" rel="noopener noreferrer">官方原站 ↗</a>
+      </div>
+    </header>
 
-<h1 ALIGN=Center>Index of locally available projects:</H1>
-  <table border="0" width="100%" cellspacing="1" cellpadding="0">
-		<TH>
-		<BR/>
-			No categories
-		</TH>
-		<TR>
-		  <TD BACKGROUND="fade.gif">
-                    &middot; <A HREF="https___www.easytomorrow.com_en_street/index.html">https___www.easytomorrow.com_en_street</A>
-   		  </TD>
-		</TR>
-	</TABLE>
-	<BR>
-	<H6 ALIGN="RIGHT">
-         <I>Mirror and index made by HTTrack Website Copier [XR&CO'2008]</I>
-	</H6>
-	<!-- Mirror and index made by HTTrack Website Copier/3.49-2 [XR&CO'2014] -->
-	<!-- Thanks for using HTTrack Website Copier! -->
+    <section class="intro-card" id="introCard" aria-labelledby="introTitle">
+      <div class="eyebrow"><span class="eyebrow-dot"></span> A LITTLE STREET, A FRESH TOMORROW</div>
+      <p class="intro-kicker">WELCOME TO</p>
+      <h1 id="introTitle">EASY TOMORROW<br><em>STREET.</em></h1>
+      <p class="intro-description">走進一座色彩繽紛的街區。四處散步、跳躍，尋找藏在街角的店舖、故事與驚喜。</p>
+      <div class="control-summary">
+        <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><small>移動</small></span>
+        <span><kbd>SPACE</kbd><small>跳躍</small></span>
+        <span><kbd>E</kbd><small>互動</small></span>
+      </div>
+      <button class="primary-button" id="enterStreet" type="button">進入街道 <span aria-hidden="true">↗</span></button>
+      <p class="intro-note">無需登入 · 直接在瀏覽器遊玩</p>
+    </section>
 
-<!-- ==================== Start epilogue ==================== -->
-		</td>
-		</tr>
-		</table>
-	</td>
-	</tr>
-	</table>
-</td>
-</tr>
-</table>
+    <div class="corner-label" id="cornerLabel" aria-hidden="true">
+      <span class="corner-number">01</span>
+      <span class="corner-divider"></span>
+      <span>THE BLUE EXPRESS<br><b>STREET EXPERIENCE</b></span>
+    </div>
 
-<table width="76%" border="0" align="center" valign="bottom" cellspacing="0" cellpadding="0">
-	<tr>
-	<td id="footer"><small>&copy; 2008 Xavier Roche & other contributors - Web Design: Leto Kauler.</small></td>
-	</tr>
-</table>
+    <section class="game-hud" id="gameHud" aria-live="polite" hidden>
+      <div class="hud-heading">
+        <span class="hud-label">YOUR WALK</span>
+        <span class="hud-count" id="discoverCount">0 / 4 DISCOVERED</span>
+      </div>
+      <p id="missionText">探索街區，尋找發光的互動地點。</p>
+      <div class="progress-track"><span id="progressBar"></span></div>
+    </section>
 
+    <section class="map-card" id="mapCard" hidden aria-label="街區地圖">
+      <div class="map-card-heading"><span>街區地圖</span><button id="closeMap" type="button" aria-label="關閉地圖">×</button></div>
+      <div class="map-diagram">
+        <div class="map-road"></div>
+        <div class="map-cross cross-a"></div><div class="map-cross cross-b"></div><div class="map-cross cross-c"></div>
+        <span class="map-shop map-shop-a">STORE</span>
+        <span class="map-shop map-shop-b">STORY</span>
+        <span class="map-shop map-shop-c">ADS</span>
+        <span class="map-shop map-shop-d">NEWS</span>
+        <span class="map-player" id="mapPlayer" aria-label="你目前的位置"></span>
+      </div>
+      <p class="map-note">沿著主街移動，靠近發光標記後按 E 互動。</p>
+    </section>
+
+    <div class="interaction-prompt" id="interactionPrompt" hidden>
+      <span class="prompt-key">E</span>
+      <span><small>DISCOVER</small><b id="promptName">靠近探索</b></span>
+      <span class="prompt-arrow">↗</span>
+    </div>
+
+    <div class="mobile-controls" id="mobileControls" aria-label="手機操作控制">
+      <div class="joystick" id="joystick" aria-label="虛擬方向搖桿">
+        <span class="joystick-ring"></span><span class="joystick-knob" id="joystickKnob"></span>
+      </div>
+      <div class="mobile-action-buttons">
+        <button id="jumpButton" type="button" aria-label="跳躍">跳躍 <span>↑</span></button>
+        <button id="interactButton" class="mobile-interact" type="button" aria-label="互動">互動 <span>E</span></button>
+      </div>
+    </div>
+
+    <button class="help-button" id="helpToggle" type="button" aria-expanded="false">操作說明 <span>＋</span></button>
+    <aside class="help-card" id="helpCard" hidden>
+      <div class="help-title">HOW TO EXPLORE <button id="closeHelp" type="button" aria-label="關閉操作說明">×</button></div>
+      <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 或方向鍵移動</p>
+      <p><kbd>SPACE</kbd> 跳躍　<kbd>E</kbd> 互動</p>
+      <p>手機可使用左下角搖桿，右下角按鈕跳躍或互動。</p>
+    </aside>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <section class="dialog-backdrop" id="dialogBackdrop" hidden>
+      <article class="discovery-dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+        <button class="dialog-close" id="dialogClose" type="button" aria-label="關閉">×</button>
+        <div class="dialog-art" id="dialogArt"><span>ET</span></div>
+        <div class="dialog-copy">
+          <p class="dialog-eyebrow" id="dialogEyebrow">STREET DISCOVERY</p>
+          <h2 id="dialogTitle">Welcome</h2>
+          <p id="dialogText"></p>
+          <a class="dialog-link" id="dialogLink" href="https://easytomorrow.com/en/street" target="_blank" rel="noopener noreferrer">前往官方網站 ↗</a>
+        </div>
+      </article>
+    </section>
+
+    <footer class="bottom-note" id="bottomNote">
+      <span>AN INTERACTIVE STREET EXPERIENCE</span>
+      <span>MOVE · EXPLORE · DISCOVER</span>
+    </footer>
+
+    <section class="boot-error" id="bootError" hidden>
+      <div class="error-icon">!</div>
+      <h2>3D 街景暫時無法載入</h2>
+      <p>請確認網路連線並重新整理。若仍無法載入，可以先開啟官方街道網站。</p>
+      <a href="https://easytomorrow.com/en/street" target="_blank" rel="noopener noreferrer">開啟官方原站 ↗</a>
+      <button id="retryButton" type="button">重新載入</button>
+    </section>
+  </main>
+  <script type="module" src="./app.js"></script>
 </body>
-
 </html>
-
-
