@@ -91,7 +91,7 @@ for page in pages:
     # Extract the paired Mux MP4 and playback ID from Next.js page data.
     # DatoCMS currently returns HTTP 422 for these loop-video URLs.
     next_data = re.search(
-        r'<script[^>]+id=["\\']__NEXT_DATA__["\\'][^>]*>(.*?)</script>',
+        r"""<script[^>]+id=["']__NEXT_DATA__["'][^>]*>(.*?)</script>""",
         text,
         flags=re.DOTALL,
     )
