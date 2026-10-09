@@ -455,6 +455,34 @@ if site_index.exists():
         encoding="utf-8"
     )
 
+# WONGMING_OPENING_TAGLINE_PATCH
+# Replace the editable opening line in HTML/JS/Next page data where the text is stored.
+tagline_replacements = 0
+tagline_variants = (
+    ("This is to be Arthur\u2019s story.", "This is to be WongMing story."),
+    ("This is to be Arthur's story.", "This is to be WongMing story."),
+    ("This is to be Arthur\\u2019s story.", "This is to be WongMing story."),
+    ("This is to be Arthur&#39;s story.", "This is to be WongMing story."),
+    ("This is to be Arthur&#x27;s story.", "This is to be WongMing story."),
+    ("This is to be Arthur&#8217;s story.", "This is to be WongMing story."),
+)
+text_extensions = {".html", ".htm", ".js", ".json", ".css", ".svg", ".txt", ".xml", ".map"}
+for source in site_root.rglob("*"):
+    if not source.is_file() or source.suffix.lower() not in text_extensions:
+        continue
+    try:
+        original_text = source.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        continue
+    updated_text = original_text
+    for old_line, new_line in tagline_variants:
+        matches = updated_text.count(old_line)
+        if matches:
+            updated_text = updated_text.replace(old_line, new_line)
+            tagline_replacements += matches
+    if updated_text != original_text:
+        source.write_text(updated_text, encoding="utf-8")
+
 file_count = sum(1 for p in root.rglob("*") if p.is_file())
 image_success = sum(1 for url in urls if url in downloaded_external)
 video_success = len(downloaded_loop_videos)
