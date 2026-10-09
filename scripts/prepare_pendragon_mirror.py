@@ -2,6 +2,7 @@
 """Repair a public HTTrack mirror by fetching static assets referenced only by JS/CSS."""
 from __future__ import annotations
 import html
+import json
 import os
 import re
 import sys
@@ -37,6 +38,35 @@ manifest_ref_re = re.compile(r"""["'](static/(?:chunks|css)/[^"'\s\\\\]+?\.(?:js
 pages = list(root.rglob("*.html"))
 urls: set[str] = set()
 loop_video_urls: set[str] = set()
+# Map DatoCMS loop-video URLs to their matching public Mux MP4 source.
+loop_video_sources: dict[str, tuple[str, str, str]] = {}
+
+def normalized_url(value: str) -> str:
+    parsed = urllib.parse.urlsplit(value)
+    return urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path, parsed.query, ""))
+
+def collect_loop_video_sources(value: object) -> None:
+    if isinstance(value, dict):
+        asset_url = value.get("url")
+        video = value.get("video")
+        if isinstance(asset_url, str) and isinstance(video, dict):
+            parsed = urllib.parse.urlsplit(asset_url)
+            filename = Path(urllib.parse.unquote(parsed.path)).name
+            if (parsed.hostname in asset_hosts and parsed.path.lower().endswith(".mp4")
+                    and any(filename.endswith(allowed) for allowed in allowed_video_suffixes)):
+                mp4_url = video.get("mp4Url")
+                playback_id = video.get("muxPlaybackId")
+                streaming_url = video.get("streamingUrl") or ""
+                if isinstance(mp4_url, str) and isinstance(playback_id, str):
+                    loop_video_sources[normalized_url(asset_url)] = (
+                        mp4_url, playback_id,
+                        streaming_url if isinstance(streaming_url, str) else "",
+                    )
+        for child in value.values():
+            collect_loop_video_sources(child)
+    elif isinstance(value, list):
+        for child in value:
+            collect_loop_video_sources(child)
 
 # First collect externally hosted public assets embedded in page data.
 for page in pages:
@@ -57,6 +87,19 @@ for page in pages:
         elif suffix == ".mp4" and any(name.endswith(allowed) for allowed in allowed_video_suffixes):
             # DatoCMS names include a timestamp prefix, so match by suffix, not exact name.
             loop_video_urls.add(normalized)
+
+    # Extract the paired Mux MP4 and playback ID from Next.js page data.
+    # DatoCMS currently returns HTTP 422 for these loop-video URLs.
+    next_data = re.search(
+        r'<script[^>]+id=["\\']__NEXT_DATA__["\\'][^>]*>(.*?)</script>',
+        text,
+        flags=re.DOTALL,
+    )
+    if next_data:
+        try:
+            collect_loop_video_sources(json.loads(next_data.group(1)))
+        except (json.JSONDecodeError, TypeError):
+            pass
 
 downloaded_external: dict[str, Path] = {}
 failed: list[str] = []
@@ -86,11 +129,34 @@ def fetch_to_path(url: str, destination: Path, timeout: int = 35) -> bool:
         failed.append(f"{url} [{type(exc).__name__}: {exc}]")
         return False
 
-for url in sorted(urls | loop_video_urls):
+for url in sorted(urls):
     parsed = urllib.parse.urlsplit(url)
     destination = root / parsed.netloc / Path(urllib.parse.unquote(parsed.path).lstrip("/"))
-    if fetch_to_path(url, destination, timeout=120 if parsed.path.lower().endswith(".mp4") else 35):
+    if fetch_to_path(url, destination):
         downloaded_external[url] = destination
+    time.sleep(0.04)
+
+# Download the short looping videos from their paired Mux MP4 URLs instead of
+# the stale DatoCMS file URLs (which return HTTP 422). Keep an external MP4
+# fallback in the page data if a local download cannot be completed.
+downloaded_loop_videos: dict[str, str] = {}
+loop_video_local_sources: dict[str, str] = {}
+for url in sorted(loop_video_urls):
+    source = loop_video_sources.get(url)
+    if not source:
+        failed.append(f"{url} [Mux MP4 fallback not found in __NEXT_DATA__]")
+        continue
+    mp4_url, playback_id, streaming_url = source
+    relative_path = f"videos/loops/{playback_id}.mp4"
+    destination = site_root / relative_path
+    if fetch_to_path(mp4_url, destination, timeout=120):
+        local_source = (base_path + "/" + relative_path) if base_path else "/" + relative_path
+        downloaded_loop_videos[url] = local_source
+    else:
+        local_source = mp4_url
+    for alias in (url, mp4_url, streaming_url):
+        if alias:
+            loop_video_local_sources[normalized_url(alias)] = local_source
     time.sleep(0.04)
 
 # Scan JS/CSS repeatedly so late-loaded Next.js chunks are scanned too.
@@ -174,9 +240,12 @@ for page in pages:
         raw = match.group(0)
         candidate = html.unescape(raw).replace(r"\u0026", "&").rstrip("),;]} ")
         parsed = urllib.parse.urlsplit(candidate)
+        normalized = normalized_url(candidate)
+        loop_local = loop_video_local_sources.get(normalized)
+        if loop_local is not None:
+            return loop_local
         if parsed.hostname not in asset_hosts:
             return raw
-        normalized = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path, parsed.query, ""))
         local = downloaded_external.get(normalized)
         if local is None:
             return raw
@@ -308,7 +377,7 @@ if site_index.exists():
 
 file_count = sum(1 for p in root.rglob("*") if p.is_file())
 image_success = sum(1 for url in urls if url in downloaded_external)
-video_success = sum(1 for url in loop_video_urls if url in downloaded_external)
+video_success = len(downloaded_loop_videos)
 report = [
     "Pendragon Cycle public-site mirror report",
     f"HTML pages found: {len(pages)}",
