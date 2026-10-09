@@ -498,6 +498,19 @@ for source in site_root.rglob("*"):
         if matches:
             updated_text = updated_text.replace(old_line, new_line)
             tagline_replacements += matches
+    # The Story page contains a line break after "the land.", so match flexible whitespace.
+    narration_pattern = re.compile(
+        r"But there(?:’|&#8217;|&rsquo;|')s more to Arthur than his birth\\.\\s*"
+        r"To understand him, you have to understand the land\\.\\s*"
+        r"The Island of the Mighty\\.\\s*"
+        r"And you have to understand Merlin\\.",
+        flags=re.IGNORECASE,
+    )
+    updated_text, matches = narration_pattern.subn(
+        "1995年8月26日香港，祖皇帝李言商透過光明會實現了建國意志，這一切的開始直到永遠。",
+        updated_text,
+    )
+    tagline_replacements += matches
     if updated_text != original_text:
         source.write_text(updated_text, encoding="utf-8")
 
