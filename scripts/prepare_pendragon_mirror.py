@@ -48,7 +48,7 @@ for page in pages:
         normalized = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path, parsed.query, ""))
         if suffix in image_extensions:
             urls.add(normalized)
-        elif suffix in video_extensions and name in allowed_video_names:
+        elif suffix in video_extensions and any(name.endswith(allowed) for allowed in allowed_video_names):
             video_urls.add(normalized)
 
 downloaded: dict[str, Path] = {}
@@ -95,7 +95,7 @@ for page in pages:
             return raw
         suffix = Path(urllib.parse.unquote(parsed.path)).suffix.lower()
         name = Path(urllib.parse.unquote(parsed.path)).name
-        if suffix not in image_extensions and not (suffix in video_extensions and name in allowed_video_names):
+        if suffix not in image_extensions and not (suffix in video_extensions and any(name.endswith(allowed) for allowed in allowed_video_names)):
             return raw
         key = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path, parsed.query, ""))
         local = downloaded.get(key)
