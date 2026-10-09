@@ -141,6 +141,7 @@ for url in sorted(urls):
 # fallback in the page data if a local download cannot be completed.
 downloaded_loop_videos: dict[str, str] = {}
 loop_video_local_sources: dict[str, str] = {}
+loop_video_playback_sources: dict[str, str] = {}
 for url in sorted(loop_video_urls):
     source = loop_video_sources.get(url)
     if not source:
@@ -152,6 +153,7 @@ for url in sorted(loop_video_urls):
     if fetch_to_path(mp4_url, destination, timeout=120):
         local_source = (base_path + "/" + relative_path) if base_path else "/" + relative_path
         downloaded_loop_videos[url] = local_source
+        loop_video_playback_sources[playback_id] = local_source
     else:
         local_source = mp4_url
     for alias in (url, mp4_url, streaming_url):
@@ -316,6 +318,74 @@ for page in pages:
                 updated = updated.replace("</head>", route_fallback + "</head>", 1)
             else:
                 updated = route_fallback + updated
+        # The captured site uses Mux Player playback IDs rather than the downloaded MP4 URLs.
+        # On static GitHub Pages, redirect matching background players to the local MP4 copies.
+        if base_path and loop_video_playback_sources and "PENDRAGON_LOCAL_VIDEO_FALLBACK" not in updated:
+            local_video_map = json.dumps(loop_video_playback_sources, ensure_ascii=True)
+            local_video_fallback = """
+<script id="PENDRAGON_LOCAL_VIDEO_FALLBACK">
+(function() {
+  var sources = %s;
+  function patchPlayer(player) {
+    if (!player || !player.matches || !player.matches('mux-player') ||
+        player.hasAttribute('data-pendragon-local-video')) return;
+    if (!window.customElements || !customElements.get('mux-player')) return;
+    var playbackId = player.getAttribute('playback-id') || player.playbackId ||
+                     player.getAttribute('playbackId') || '';
+    var source = sources[playbackId];
+    if (!source) return;
+    try {
+      player.removeAttribute('playback-id');
+      player.removeAttribute('playbackId');
+      try { player.playbackId = null; } catch (e) {}
+      player.setAttribute('src', source);
+      try { player.src = source; } catch (e) {}
+      player.setAttribute('muted', '');
+      player.muted = true;
+      if (player.hasAttribute('autoplay') || player.autoplay === true) player.autoplay = true;
+      if (player.hasAttribute('loop') || player.loop === true) player.loop = true;
+      if (player.hasAttribute('playsinline') || player.playsInline === true) player.playsInline = true;
+      if (!player.getAttribute('preload') || player.getAttribute('preload') === 'none') {
+        player.setAttribute('preload', 'auto');
+      }
+      player.setAttribute('data-pendragon-local-video', '1');
+      var tryPlay = function() {
+        try {
+          var result = player.play();
+          if (result && typeof result.catch === 'function') result.catch(function() {});
+        } catch (e) {}
+      };
+      player.addEventListener('canplay', tryPlay, { once: true });
+      if (player.readyState >= 2) tryPlay();
+    } catch (e) {}
+  }
+  function scan(root) {
+    if (!root) return;
+    if (root.nodeType === 1) patchPlayer(root);
+    if (root.querySelectorAll) root.querySelectorAll('mux-player').forEach(patchPlayer);
+  }
+  var observer = new MutationObserver(function(records) {
+    records.forEach(function(record) {
+      if (record.type === 'childList') record.addedNodes.forEach(scan);
+      else if (record.type === 'attributes') patchPlayer(record.target);
+    });
+  });
+  observer.observe(document.documentElement, {
+    subtree: true, childList: true, attributes: true, attributeFilter: ['playback-id', 'playbackId']
+  });
+  function start() { scan(document); }
+  if (window.customElements && customElements.whenDefined) {
+    customElements.whenDefined('mux-player').then(start);
+  }
+  document.addEventListener('DOMContentLoaded', start);
+  start();
+})();
+</script>
+""" % local_video_map
+            if "</head>" in updated:
+                updated = updated.replace("</head>", local_video_fallback + "</head>", 1)
+            else:
+                updated = local_video_fallback + updated
     if updated != text:
         rewritten_pages += 1
         page.write_text(updated, encoding="utf-8")
