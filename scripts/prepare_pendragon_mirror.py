@@ -32,6 +32,7 @@ allowed_video_suffixes = (
 base_path = os.environ.get("SITE_BASE_PATH", "").rstrip("/")
 url_re = re.compile(r'https?://[^"\'\s<>\\\\]+')
 quoted_asset_re = re.compile(r"""["'](/(?:images|audio|videos|_next/static)/[^"'\s\)\]\}?,;]{1,200})["']""")
+template_asset_re = re.compile(r"""`(/(?:images|audio|videos|_next/static)/[^`]{1,200})`""")
 css_url_re = re.compile(r"""url\(\s*["']?(/(?:images|audio|videos|_next/static)/[^)"'\s]+)""")
 manifest_ref_re = re.compile(r"""["'](static/(?:chunks|css)/[^"'\s\\\\]+?\.(?:js|css))["']""")
 
@@ -184,6 +185,30 @@ for scan_round in range(8):
                 continue
             discovered_paths.add(path)
 
+        # Expand dynamically selected image extensions in JavaScript template strings.
+        for match in template_asset_re.finditer(source_text):
+            template_path = match.group(1).split("?", 1)[0].split("#", 1)[0]
+            if template_path.endswith("/") or template_path.count(".."):
+                continue
+            if "${" not in template_path:
+                discovered_paths.add(template_path)
+                continue
+            placeholders = re.findall(r"\$\{([^{}]+)\}", template_path)
+            expanded_paths = [template_path]
+            for placeholder in placeholders:
+                extensions = list(dict.fromkeys(re.findall(r"avif|webp|png|jpg|jpeg|gif|svg", placeholder, re.IGNORECASE)))
+                if not extensions:
+                    expanded_paths = []
+                    break
+                expanded_paths = [
+                    candidate.replace("${" + placeholder + "}", extension)
+                    for candidate in expanded_paths
+                    for extension in extensions
+                ]
+            for path in expanded_paths:
+                if "$" not in path and not path.endswith("/") and ".." not in path:
+                    discovered_paths.add(path)
+
         for match in css_url_re.finditer(source_text):
             path = match.group(1).split("?", 1)[0].split("#", 1)[0]
             if "$" in path or path.endswith("/") or path.count(".."):
@@ -256,7 +281,7 @@ for page in pages:
         # Project Pages hosts the mirror below /wme-street/pendragoncycle.com/,
         # so original root-absolute assets must use that prefix.
         for prefix in ("/_next/", "/images/", "/audio/", "/videos/"):
-            updated = re.sub(r"""(["'(=\s])""" + re.escape(prefix), lambda m: m.group(1) + base_path + prefix, updated)
+            updated = re.sub(r"""(["'`(=\s])""" + re.escape(prefix), lambda m: m.group(1) + base_path + prefix, updated)
         # Next's client router rewrites anchors to root paths. Force same-origin route clicks
         # through the saved static HTML copies instead of navigating out of the project path.
         if "PENDRAGON_STATIC_ROUTE_FALLBACK" not in updated:
@@ -332,7 +357,7 @@ if base_path:
         updated = source_text
         for prefix in ("/_next/", "/images/", "/audio/", "/videos/"):
             updated = re.sub(
-                r"""(["'(=\s])""" + re.escape(prefix),
+                r"""(["'`(=\s])""" + re.escape(prefix),
                 lambda match: match.group(1) + base_path + prefix,
                 updated,
             )
