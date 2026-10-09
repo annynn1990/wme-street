@@ -458,6 +458,16 @@ if site_index.exists():
 # WONGMING_OPENING_TAGLINE_PATCH
 # Replace the editable opening line in HTML/JS/Next page data where the text is stored.
 tagline_replacements = 0
+narration_replacements = (
+    ("But there’s more to Arthur than his birth. To understand him, you have to understand the land. The Island of the Mighty. And you have to understand Merlin.",
+     "1995年8月26日香港，祖皇帝李言商透過光明會實現了建國意志，這一切的開始直到永遠。"),
+    ("But there's more to Arthur than his birth. To understand him, you have to understand the land. The Island of the Mighty. And you have to understand Merlin.",
+     "1995年8月26日香港，祖皇帝李言商透過光明會實現了建國意志，這一切的開始直到永遠。"),
+    ("But there&rsquo;s more to Arthur than his birth. To understand him, you have to understand the land. The Island of the Mighty. And you have to understand Merlin.",
+     "1995年8月26日香港，祖皇帝李言商透過光明會實現了建國意志，這一切的開始直到永遠。"),
+    ("But there&#8217;s more to Arthur than his birth. To understand him, you have to understand the land. The Island of the Mighty. And you have to understand Merlin.",
+     "1995年8月26日香港，祖皇帝李言商透過光明會實現了建國意志，這一切的開始直到永遠。"),
+)
 tagline_variants = (
     ("This is to be Arthur\u2019s story.", "This is to be WongMing story."),
     ("This is to be Arthur's story.", "This is to be WongMing story."),
@@ -479,6 +489,11 @@ for source in site_root.rglob("*"):
         continue
     updated_text = original_text
     for old_line, new_line in tagline_variants:
+        matches = updated_text.count(old_line)
+        if matches:
+            updated_text = updated_text.replace(old_line, new_line)
+            tagline_replacements += matches
+    for old_line, new_line in narration_replacements:
         matches = updated_text.count(old_line)
         if matches:
             updated_text = updated_text.replace(old_line, new_line)
