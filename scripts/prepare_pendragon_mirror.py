@@ -195,24 +195,50 @@ for page in pages:
 <script id="PENDRAGON_STATIC_ROUTE_FALLBACK">
 (function(){
   var prefix = %s;
+  var parts = prefix.split('/');
+  var repoRoot = parts[1] ? '/' + parts[1] : prefix;
   document.addEventListener('click', function(event) {
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     var target = event.target;
     var anchor = target && target.closest ? target.closest('a[href]') : null;
     if (!anchor || anchor.target === '_blank' || anchor.hasAttribute('download')) return;
     var href = anchor.getAttribute('href') || '';
-    if (href.charAt(0) !== '/' || href.indexOf(prefix + '/') === 0) return;
-    if (/^\\/(?:_next|images|audio|videos)\\//.test(href)) return;
-    var hashAt = href.indexOf('#'), queryAt = href.indexOf('?');
-    var cut = href.length;
-    if (hashAt >= 0) cut = Math.min(cut, hashAt);
-    if (queryAt >= 0) cut = Math.min(cut, queryAt);
-    var route = href.slice(0, cut);
-    var extra = href.slice(cut);
-    var targetPath = route === '/' ? prefix + '/index.html' : prefix + route.replace(/\\/+$/, '') + '/index.html';
+    if (!href || href.charAt(0) === '#' ||
+        href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0 ||
+        href.indexOf('javascript:') === 0 || href.indexOf('data:') === 0) return;
+
+    var targetUrl;
+    try { targetUrl = new URL(href, window.location.href); } catch (error) { return; }
+    if (targetUrl.origin !== window.location.origin) return;
+
+    var underMirror = targetUrl.pathname === prefix || targetUrl.pathname.indexOf(prefix + '/') === 0;
+    var underProject = targetUrl.pathname === repoRoot || targetUrl.pathname.indexOf(repoRoot + '/') === 0;
+
+    if (!underMirror && !underProject && href.charAt(0) === '/') {
+      var route = targetUrl.pathname;
+      if (route.indexOf('/_next/') === 0 || route.indexOf('/images/') === 0 ||
+          route.indexOf('/audio/') === 0 || route.indexOf('/videos/') === 0) return;
+      var targetPath;
+      if (route === '/') targetPath = prefix + '/index.html';
+      else if (route.toLowerCase().slice(-5) === '.html') targetPath = prefix + route;
+      else targetPath = prefix + route.replace(/\/+$/, '') + '/index.html';
+      targetUrl.pathname = targetPath;
+      underMirror = true;
+    }
+
+    if (!underMirror && !underProject) return;
+
+    if (underMirror) {
+      var localPath = targetUrl.pathname.slice(prefix.length + 1);
+      if (localPath.indexOf('_next/') === 0 || localPath.indexOf('images/') === 0 ||
+          localPath.indexOf('audio/') === 0 || localPath.indexOf('videos/') === 0) return;
+    }
+
+    // HTTrack rewrites internal Next.js links to relative paths such as
+    // "story/index.html". Bypass Next's client router and load the saved HTML file.
     event.preventDefault();
     event.stopImmediatePropagation();
-    window.location.href = targetPath + extra;
+    window.location.href = targetUrl.href;
   }, true);
 })();
 </script>
