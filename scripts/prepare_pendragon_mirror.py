@@ -25,6 +25,10 @@ logo_source = root.parent / logo_filename
 logo_destination = root / logo_filename
 if logo_source.is_file():
     shutil.copy2(logo_source, logo_destination)
+    # Also overwrite the exact asset path requested by the original pages.
+    logo_asset_destination = site_root / "images" / "logo" / "logo-gold.png"
+    logo_asset_destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(logo_source, logo_asset_destination)
 else:
     print(f"WARNING: replacement logo not found: {logo_source}", file=sys.stderr)
 
@@ -49,6 +53,11 @@ brand_mark_source = root.parent / brand_mark_filename
 brand_mark_destination = root / brand_mark_filename
 if brand_mark_source.is_file():
     shutil.copy2(brand_mark_source, brand_mark_destination)
+    # Critical fix: replace the original asset file itself, so any remaining
+    # absolute, relative, URL-encoded, CSS, or bundled reference gets wme.png.
+    brand_mark_asset_destination = site_root / "images" / "logo" / "brand-mark.png"
+    brand_mark_asset_destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(brand_mark_source, brand_mark_asset_destination)
 else:
     print(f"WARNING: replacement brand mark not found: {brand_mark_source}", file=sys.stderr)
 brand_mark_replacement = (repository_base_path + "/" + brand_mark_filename) if repository_base_path else "/" + brand_mark_filename
