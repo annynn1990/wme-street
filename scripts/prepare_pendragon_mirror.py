@@ -5,6 +5,7 @@ import html
 import json
 import os
 import re
+import shutil
 import sys
 import time
 import urllib.parse
@@ -18,6 +19,15 @@ site_root = root / "pendragoncycle.com"
 if not site_root.exists():
     raise SystemExit(f"HTTrack site folder not found: {site_root}")
 
+# Include the user-provided replacement logo in the generated GitHub Pages mirror.
+logo_filename = "Gemini_Generated_Image_c2psf0c2psf0c2ps-Photoroom.png"
+logo_source = root.parent / logo_filename
+logo_destination = root / logo_filename
+if logo_source.is_file():
+    shutil.copy2(logo_source, logo_destination)
+else:
+    print(f"WARNING: replacement logo not found: {logo_source}", file=sys.stderr)
+
 image_extensions = {".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif", ".svg"}
 asset_hosts = {"www.datocms-assets.com", "datocms-assets.com", "image.mux.com"}
 allowed_video_suffixes = (
@@ -30,6 +40,10 @@ allowed_video_suffixes = (
     "pendragon-subscribe-menu_1280x720.mp4",
 )
 base_path = os.environ.get("SITE_BASE_PATH", "").rstrip("/")
+# In GitHub Pages, the mirror is deployed beneath the repository path while
+# the replacement logo is copied to the mirror root.
+repository_base_path = base_path.rsplit("/", 1)[0] if base_path else ""
+logo_replacement = (repository_base_path + "/" + logo_filename) if repository_base_path else "/" + logo_filename
 url_re = re.compile(r'https?://[^"\'\s<>\\\\]+')
 quoted_asset_re = re.compile(r"""["'](/(?:images|audio|videos|_next/static)/[^"'\s\)\]\}?,;]{1,200})["']""")
 template_asset_re = re.compile(r"""`(/(?:images|audio|videos|_next/static)/[^`]{1,200})`""")
@@ -488,6 +502,14 @@ for source in site_root.rglob("*"):
     except OSError:
         continue
     updated_text = original_text
+    # Replace the original gold logo URL with the local user-provided image.
+    for old_logo_url in (
+        "https://pendragoncycle.com/images/logo/logo-gold.png",
+        "http://pendragoncycle.com/images/logo/logo-gold.png",
+        "//pendragoncycle.com/images/logo/logo-gold.png",
+        r"https:\/\/pendragoncycle.com\/images\/logo\/logo-gold.png",
+    ):
+        updated_text = updated_text.replace(old_logo_url, logo_replacement)
     for old_line, new_line in tagline_variants:
         matches = updated_text.count(old_line)
         if matches:
