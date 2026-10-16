@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -32,11 +33,13 @@ jobs:
           enablement: true
 
       - name: Install HTTrack
+        if: ${{ !contains(github.event.head_commit.message, '[logo-fix]') }}
         run: |
           sudo apt-get update
           sudo apt-get install -y httrack zip python3
 
       - name: Mirror public pages and static assets
+        if: ${{ !contains(github.event.head_commit.message, '[logo-fix]') }}
         run: |
           mkdir -p mirror
           httrack "https://pendragoncycle.com/" \
@@ -53,10 +56,30 @@ jobs:
             --connection-per-second=2 --timeout=30 --retries=2 -v
 
       - name: Localize discovered public image assets
+        if: ${{ !contains(github.event.head_commit.message, '[logo-fix]') }}
         run: |
           SITE_BASE_PATH="/wme-street/pendragoncycle.com" python3 scripts/prepare_pendragon_mirror.py "$PWD/mirror"
           test -f mirror/index.html
           test -f mirror/pendragoncycle.com/index.html
+
+      - name: Download previous Pages artifact for logo-only repair
+        if: ${{ contains(github.event.head_commit.message, '[logo-fix]') }}
+        uses: actions/download-artifact@v4
+        with:
+          name: github-pages
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 38871829342
+          path: downloaded-pages
+
+      - name: Restore previous Pages tree for logo-only repair
+        if: ${{ contains(github.event.head_commit.message, '[logo-fix]') }}
+        run: |
+          set -euo pipefail
+          test -s downloaded-pages/artifact.tar
+          mkdir -p mirror
+          tar -xf downloaded-pages/artifact.tar -C mirror
+          test -s mirror/pendragoncycle.com/story/index.html
 
       - name: Force replacement logos at the exact deployed asset paths
         run: |
