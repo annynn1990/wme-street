@@ -44,10 +44,10 @@ allowed_video_suffixes = (
     "pendragon-subscribe-menu_1280x720.mp4",
 )
 base_path = os.environ.get("SITE_BASE_PATH", "").rstrip("/")
-# In GitHub Pages, the mirror is deployed beneath the repository path while
-# the replacement logo is copied to the mirror root.
-repository_base_path = base_path.rsplit("/", 1)[0] if base_path else ""
-logo_replacement = (repository_base_path + "/" + logo_filename) if repository_base_path else "/" + logo_filename
+# Use the exact deployed asset URLs, not a second path at the site root.
+# A commit-specific query string below also avoids stale CDN/browser caches.
+logo_replacement = (base_path + "/images/logo/logo-gold.png") if base_path else "/images/logo/logo-gold.png"
+logo_cache_tag = os.environ.get("GITHUB_SHA", "wme-logo-refresh")[:12]
 brand_mark_filename = "wme.png"
 brand_mark_source = root.parent / brand_mark_filename
 brand_mark_destination = root / brand_mark_filename
@@ -60,7 +60,7 @@ if brand_mark_source.is_file():
     shutil.copy2(brand_mark_source, brand_mark_asset_destination)
 else:
     print(f"WARNING: replacement brand mark not found: {brand_mark_source}", file=sys.stderr)
-brand_mark_replacement = (repository_base_path + "/" + brand_mark_filename) if repository_base_path else "/" + brand_mark_filename
+brand_mark_replacement = (base_path + "/images/logo/brand-mark.png") if base_path else "/images/logo/brand-mark.png"
 url_re = re.compile(r'https?://[^"\'\s<>\\\\]+')
 quoted_asset_re = re.compile(r"""["'](/(?:images|audio|videos|_next/static)/[^"'\s\)\]\}?,;]{1,200})["']""")
 template_asset_re = re.compile(r"""`(/(?:images|audio|videos|_next/static)/[^`]{1,200})`""")
@@ -598,6 +598,11 @@ for source in site_root.rglob("*"):
             if count:
                 updated_logo_text = updated_logo_text.replace(old_path, local_logo_url)
                 logo_replacements += count
+    # Add a unique query string to the exact replacement URLs referenced by
+    # the mirrored app, forcing browsers/CDNs to request the new images.
+    for local_logo_url in (logo_replacement, brand_mark_replacement):
+        cache_busted_url = local_logo_url + "?v=" + logo_cache_tag
+        updated_logo_text = re.sub(re.escape(local_logo_url) + r"(?![?#])", cache_busted_url, updated_logo_text)
     if updated_logo_text != original_logo_text:
         source.write_text(updated_logo_text, encoding="utf-8")
 
