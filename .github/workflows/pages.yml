@@ -98,7 +98,7 @@ jobs:
                   continue
               updated = original
               for filename, target in replacements.items():
-                  pattern = re.compile(r"""[^"\' <>(),;]*""" + "[.]".join(filename.split(".")) + r"""([?][^"\' <>(),;]*)?""")
+                  pattern = re.compile(r"""[^"' <>(),;]*""" + "[.]".join(filename.split(".")) + r"""([?][^"' <>(),;]*)?""")
                   updated, count = pattern.subn(target, updated)
                   totals[filename] += count
               if updated != original:
