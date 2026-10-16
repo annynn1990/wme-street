@@ -70,6 +70,50 @@ jobs:
           echo "Replacement files deployed:"
           sha256sum "mirror/pendragoncycle.com/images/logo/logo-gold.png" "mirror/pendragoncycle.com/images/logo/brand-mark.png" "Gemini_Generated_Image_c2psf0c2psf0c2ps-Photoroom.png" "wme.png"
 
+      - name: Normalize every logo reference to the correct Pages URL
+        env:
+          LOGO_BASE_PATH: /wme-street/pendragoncycle.com
+          LOGO_VERSION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+
+          root = Path("mirror/pendragoncycle.com")
+          base = os.environ["LOGO_BASE_PATH"].rstrip("/")
+          version = os.environ["LOGO_VERSION"][:12]
+          replacements = {
+              "logo-gold.png": f"{base}/images/logo/logo-gold.png?v={version}",
+              "brand-mark.png": f"{base}/images/logo/brand-mark.png?v={version}",
+          }
+          extensions = {".html", ".htm", ".js", ".css", ".json", ".map", ".xml", ".svg"}
+          totals = {name: 0 for name in replacements}
+          for path in root.rglob("*"):
+              if not path.is_file() or path.suffix.lower() not in extensions:
+                  continue
+              try:
+                  original = path.read_text(encoding="utf-8", errors="ignore")
+              except OSError:
+                  continue
+              updated = original
+              for filename, target in replacements.items():
+                  pattern = re.compile(r"""[^"'\\s<>]*?""" + re.escape(filename) + r"""(?:\\?[^"'\\s<>]*)?""")
+                  updated, count = pattern.subn(target, updated)
+                  totals[filename] += count
+              if updated != original:
+                  path.write_text(updated, encoding="utf-8")
+          for filename, total in totals.items():
+              print(f"{filename}: normalized {total} references")
+              if total == 0:
+                  raise SystemExit(f"ERROR: No references found for {filename}")
+          PY
+          echo "Checking for duplicated logo prefixes..."
+          if grep -R -n -E 'wme-street/pendragoncycle.com/wme-street/pendragoncycle.com|pendragoncycle.com//wme-street/pendragoncycle.com' mirror/pendragoncycle.com --include='*.html' --include='*.js' --include='*.css'; then
+            echo "::error::Found malformed duplicated logo paths after normalization"
+            exit 1
+          fi
+
       - name: Prepare static hosting
         run: |
           touch mirror/.nojekyll
