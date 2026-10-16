@@ -44,6 +44,14 @@ base_path = os.environ.get("SITE_BASE_PATH", "").rstrip("/")
 # the replacement logo is copied to the mirror root.
 repository_base_path = base_path.rsplit("/", 1)[0] if base_path else ""
 logo_replacement = (repository_base_path + "/" + logo_filename) if repository_base_path else "/" + logo_filename
+brand_mark_filename = "wme.png"
+brand_mark_source = root.parent / brand_mark_filename
+brand_mark_destination = root / brand_mark_filename
+if brand_mark_source.is_file():
+    shutil.copy2(brand_mark_source, brand_mark_destination)
+else:
+    print(f"WARNING: replacement brand mark not found: {brand_mark_source}", file=sys.stderr)
+brand_mark_replacement = (repository_base_path + "/" + brand_mark_filename) if repository_base_path else "/" + brand_mark_filename
 url_re = re.compile(r'https?://[^"\'\s<>\\\\]+')
 quoted_asset_re = re.compile(r"""["'](/(?:images|audio|videos|_next/static)/[^"'\s\)\]\}?,;]{1,200})["']""")
 template_asset_re = re.compile(r"""`(/(?:images|audio|videos|_next/static)/[^`]{1,200})`""")
@@ -510,6 +518,16 @@ for source in site_root.rglob("*"):
         r"https:\/\/pendragoncycle.com\/images\/logo\/logo-gold.png",
     ):
         updated_text = updated_text.replace(old_logo_url, logo_replacement)
+    # Replace the original brand mark with the repository's wme.png image.
+    for old_brand_mark in (
+        "https://pendragoncycle.com/images/logo/brand-mark.png",
+        "http://pendragoncycle.com/images/logo/brand-mark.png",
+        "//pendragoncycle.com/images/logo/brand-mark.png",
+        r"https:\/\/pendragoncycle.com\/images\/logo\/brand-mark.png",
+        "/images/logo/brand-mark.png",
+        r"\/images\/logo\/brand-mark.png",
+    ):
+        updated_text = updated_text.replace(old_brand_mark, brand_mark_replacement)
     for old_line, new_line in tagline_variants:
         matches = updated_text.count(old_line)
         if matches:
