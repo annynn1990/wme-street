@@ -554,6 +554,44 @@ for source in site_root.rglob("*"):
     if updated_text != original_text:
         source.write_text(updated_text, encoding="utf-8")
 
+# WONGMING_LOGO_REPLACEMENT_FINAL_PASS
+# Earlier mirror rewriting prefixes root-absolute /images paths with the
+# GitHub Pages subpath. Replace both the original and already-prefixed paths
+# only after all HTML/JS/CSS path rewriting has finished.
+logo_replacements = 0
+logo_replacement_pairs = (
+    ("logo-gold.png", logo_replacement),
+    ("brand-mark.png", brand_mark_replacement),
+)
+for source in site_root.rglob("*"):
+    if not source.is_file() or source.suffix.lower() not in text_extensions:
+        continue
+    try:
+        original_logo_text = source.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        continue
+    updated_logo_text = original_logo_text
+    for logo_name, local_logo_url in logo_replacement_pairs:
+        old_paths = (
+            f"https://pendragoncycle.com/images/logo/{logo_name}",
+            f"http://pendragoncycle.com/images/logo/{logo_name}",
+            f"//pendragoncycle.com/images/logo/{logo_name}",
+            f"/images/logo/{logo_name}",
+            f"images/logo/{logo_name}",
+            f"{base_path}/images/logo/{logo_name}",
+            f"{base_path}/images/logo/{logo_name}".replace("/", r"\\/"),
+            rf"https:\\/\\/pendragoncycle.com\\/images\\/logo\\/{logo_name}",
+            rf"\\/images\\/logo\\/{logo_name}",
+            rf"{base_path.replace('/', r'\\/') }\\/images\\/logo\\/{logo_name}",
+        )
+        for old_path in old_paths:
+            count = updated_logo_text.count(old_path)
+            if count:
+                updated_logo_text = updated_logo_text.replace(old_path, local_logo_url)
+                logo_replacements += count
+    if updated_logo_text != original_logo_text:
+        source.write_text(updated_logo_text, encoding="utf-8")
+
 file_count = sum(1 for p in root.rglob("*") if p.is_file())
 image_success = sum(1 for url in urls if url in downloaded_external)
 video_success = len(downloaded_loop_videos)
@@ -570,6 +608,7 @@ report = [
     f"HTML pages updated with local media/base paths: {rewritten_pages}",
     f"JS/CSS bundles updated with project base path: {rewritten_bundles}",
     f"Next.js route JSON payloads saved: {json_downloads}",
+    f"Logo references replaced in final pass: {logo_replacements}",
     f"Files in mirror before report: {file_count}",
     "",
     "This is a static mirror, not the original server source or backend.",
