@@ -58,6 +58,18 @@ jobs:
           test -f mirror/index.html
           test -f mirror/pendragoncycle.com/index.html
 
+      - name: Force replacement logos at the exact deployed asset paths
+        run: |
+          set -euo pipefail
+          install -D "Gemini_Generated_Image_c2psf0c2psf0c2ps-Photoroom.png" "mirror/pendragoncycle.com/images/logo/logo-gold.png"
+          install -D "wme.png" "mirror/pendragoncycle.com/images/logo/brand-mark.png"
+          cp "Gemini_Generated_Image_c2psf0c2psf0c2ps-Photoroom.png" "mirror/Gemini_Generated_Image_c2psf0c2psf0c2ps-Photoroom.png"
+          cp "wme.png" "mirror/wme.png"
+          test -s "mirror/pendragoncycle.com/images/logo/logo-gold.png"
+          test -s "mirror/pendragoncycle.com/images/logo/brand-mark.png"
+          echo "Replacement files deployed:"
+          sha256sum "mirror/pendragoncycle.com/images/logo/logo-gold.png" "mirror/pendragoncycle.com/images/logo/brand-mark.png" "Gemini_Generated_Image_c2psf0c2psf0c2ps-Photoroom.png" "wme.png"
+
       - name: Prepare static hosting
         run: |
           touch mirror/.nojekyll
