@@ -88,3 +88,32 @@ jobs:
       - name: Deploy mirror
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify replacement logos from the public site
+        env:
+          PUBLIC_PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 12); do
+            if curl --fail --silent --show-error --location "${PUBLIC_PAGES_URL}/pendragoncycle.com/images/logo/logo-gold.png?v=${GITHUB_SHA}" -o /tmp/logo-gold.png &&
+               curl --fail --silent --show-error --location "${PUBLIC_PAGES_URL}/pendragoncycle.com/images/logo/brand-mark.png?v=${GITHUB_SHA}" -o /tmp/brand-mark.png; then
+              break
+            fi
+            echo "Public image URLs not ready (attempt ${attempt}/12); retrying..."
+            sleep 5
+          done
+          test -s /tmp/logo-gold.png
+          test -s /tmp/brand-mark.png
+          echo "Expected source image digests:"
+          sha256sum Gemini_Generated_Image_c2psf0c2psf0c2ps-Photoroom.png wme.png
+          echo "Public image response digests:"
+          sha256sum /tmp/logo-gold.png /tmp/brand-mark.png
+          cmp -s Gemini_Generated_Image_c2psf0c2psf0c2ps-Photoroom.png /tmp/logo-gold.png || {
+            echo "::error::Public logo-gold.png does not match the replacement image."
+            exit 1
+          }
+          cmp -s wme.png /tmp/brand-mark.png || {
+            echo "::error::Public brand-mark.png does not match wme.png."
+            exit 1
+          }
+          echo "Both published logo URLs return the exact replacement image files."
