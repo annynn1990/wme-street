@@ -112,6 +112,10 @@ jobs:
           }
           extensions = {".html", ".htm", ".js", ".css", ".json", ".map", ".xml", ".svg"}
           totals = {name: 0 for name in replacements}
+          # Replace only the token surrounding each filename. This avoids a
+          # leading-wildcard regex repeatedly backtracking through minified JS.
+          start_delimiters = set("\"' <>(),;=") | {chr(96)}
+          end_delimiters = set("\"' <>(),;") | {chr(96)}
           for path in root.rglob("*"):
               if not path.is_file() or path.suffix.lower() not in extensions:
                   continue
@@ -121,9 +125,20 @@ jobs:
                   continue
               updated = original
               for filename, target in replacements.items():
-                  pattern = re.compile(r"""[^"' <>(),;]*""" + "[.]".join(filename.split(".")) + r"""([?][^"' <>(),;]*)?""")
-                  updated, count = pattern.subn(target, updated)
-                  totals[filename] += count
+                  position = 0
+                  while True:
+                      index = updated.find(filename, position)
+                      if index < 0:
+                          break
+                      start = index
+                      while start > 0 and updated[start - 1] not in start_delimiters:
+                          start -= 1
+                      end = index + len(filename)
+                      while end < len(updated) and updated[end] not in end_delimiters:
+                          end += 1
+                      updated = updated[:start] + target + updated[end:]
+                      totals[filename] += 1
+                      position = start + len(target)
               if updated != original:
                   path.write_text(updated, encoding="utf-8")
           for filename, total in totals.items():
